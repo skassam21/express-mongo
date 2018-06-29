@@ -36,6 +36,19 @@ app.get('/posts', (req, res) => {
     });
 })
 
+app.get('/posts/:id', (req, res) => {
+    Post.findById(req.params.id).exec(function(err, post) {
+        if (err) {
+            console.error(err);
+            res.status(500);
+            res.send({'error': err});
+        } else {
+            res.send({post: post});
+        }
+    });
+})
+
+
 app.post('/posts', (req, res) => {
     const post = Post(req.body.post);
     post.save(function(err) {
