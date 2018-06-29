@@ -1,18 +1,22 @@
 const express = require('express');
 // import { MongoClient } from 'mongodb'
-const MongoClient = require('mongodb').MongoClient; 
-const ObjectId = require('mongodb').ObjectId;
+const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const Post = require('./Post');
 
 const url = "mongodb://localhost:27017/mydb";
 
-// Connecting to the database
-let db; 
-MongoClient.connect(url, (err, client) => {
-    if (err) throw err;
-    console.log('Database created!');
-    db = client.db('mydb');
-})
+/**
+ * Connect to database
+ */
+mongoose.connect(url);
+  mongoose.connection.on('error', function () {
+      console.log('Mongoose connection error');
+  });
+  mongoose.connection.once('open', function callback() {
+      console.log("Mongoose connected to the database");
+  });
+  mongoose.Promise = global.Promise;
 
 // Setting up body parser
 const app = express();
@@ -21,41 +25,26 @@ app.use(bodyParser.json());
 
 // Routes
 app.get('/posts', (req, res) => {
-    db.collection('posts').find({}).toArray((err, items) => {
+    Post.find().exec(function(err, posts) {
         if (err) {
             console.error(err);
             res.status(500);
             res.send({'error': err});
         } else {
-            res.send({posts: items});
+            res.send({posts: posts});
         }
-    })
+    });
 })
 
 app.post('/posts', (req, res) => {
-    // Go to database, and create new post
-    db.collection('posts').save(req.body.post, (err, result) => {
+    const post = Post(req.body.post);
+    post.save(function(err) {
         if (err) {
-            console.error(err);
-            res.status(500);
-            res.send({'error': err});
+          res.send({error: err.message});
         } else {
-            console.log('saved to database');
-            res.send(result);
+            res.send('Success!');
         }
-    })
-})
-
-app.get('/posts/:id', (req, res) => {
-    db.collection('posts').find({_id: ObjectId(req.params.id)}).toArray((err, items) => {
-        if (err) {
-            console.error(err);
-            res.status(500);
-            res.send({'error': err});
-        } else {
-            res.send({post: items[0]});
-        }
-    })
+      });
 })
 
 app.listen(3000, () => console.log('Example app listening on port 3000!'))
